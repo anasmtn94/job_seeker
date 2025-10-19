@@ -33,8 +33,9 @@ WORKDIR /app
 # Copy composer files
 COPY composer.json composer.lock ./
 
-# Install Composer dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Install Composer dependencies without running Laravel scripts
+RUN composer install --no-dev --no-scripts
+
 
 # Copy package files
 COPY package.json package-lock.json ./
@@ -45,11 +46,15 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
+# Generate optimized autoloader after install
+RUN composer dump-autoload --optimize
+
 # Copy PHP configuration
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
-# Generate autoload files
-RUN composer dump-autoload --optimize
+# Install Composer dependencies
+RUN composer install --no-dev --optimize-autoloader
+
 
 # Build frontend assets
 RUN npm run build
@@ -64,5 +69,8 @@ COPY Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80
 EXPOSE 443
 
+# Fix permissions for FrankenPHP binary
+RUN chmod +x /usr/local/bin/frankenphp
+
 # Start FrankenPHP
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"] 
+CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
